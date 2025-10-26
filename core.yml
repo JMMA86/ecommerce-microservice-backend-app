@@ -5,9 +5,20 @@ services:
       - 9411:9411
     networks:
       - microservices_network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:9411/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   service-discovery-container:
-    image: selimhorri/service-discovery-ecommerce-boot:0.1.0
+    build:
+      context: ./service-discovery
+      dockerfile: Dockerfile
     ports:
       - 8761:8761
     networks:
@@ -16,9 +27,23 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_ZIPKIN_BASE-URL=http://zipkin:9411
       - SPRING_CONFIG_IMPORT=optional:configserver:http://cloud-config-container:9296/
+    depends_on:
+      cloud-config-container:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:8761/actuator/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   cloud-config-container:
-    image: selimhorri/cloud-config-ecommerce-boot:0.1.0
+    build:
+      context: ./cloud-config
+      dockerfile: Dockerfile
     ports:
       - 9296:9296
     networks:
@@ -30,6 +55,15 @@ services:
       - EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT=myzone
       - EUREKA_CLIENT_SERVICEURL_MYZONE=http://service-discovery-container:8761/eureka
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-discovery-container:8761/eureka/
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:9296/actuator/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 networks:
   microservices_network:
