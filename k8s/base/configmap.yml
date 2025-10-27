@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ecommerce-config
+data:
+  SPRING_PROFILES_ACTIVE: "dev"
+  SPRING_ZIPKIN_BASE_URL: "http://zipkin:9411"
+  EUREKA_CLIENT_REGION: "default"
+  EUREKA_CLIENT_AVAILABILITY_ZONES_DEFAULT: "myzone"
+  EUREKA_CLIENT_SERVICE_URL_MYZONE: "http://service-discovery:8761/eureka"
+  EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://service-discovery:8761/eureka/"
+  SPRING_CONFIG_IMPORT: "optional:configserver:http://cloud-config:9296/"

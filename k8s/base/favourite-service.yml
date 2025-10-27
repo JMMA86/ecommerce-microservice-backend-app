@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: favourite-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: favourite-service
+  template:
+    metadata:
+      labels:
+        app: favourite-service
+    spec:
+      containers:
+        - name: favourite-service
+          image: ecommerce/favourite-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8800
+          envFrom:
+            - configMapRef:
+                name: ecommerce-config
+          env:
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "favourite-service"
+            - name: EUREKA_INSTANCE_NON_SECURE_PORT
+              value: "8800"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: favourite-service
+spec:
+  selector:
+    app: favourite-service
+  ports:
+    - port: 8800
+      targetPort: 8800
+  type: ClusterIP
