@@ -27,5 +27,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "Despliegue en Kubernetes completado."
 
+Write-Host "Para acceder a la aplicacion, ejecuta uno de los siguientes comandos en una terminal con privilegios de administrador:"
+Write-Host "kubectl port-forward svc/api-gateway 8081:8080 -n ecommerce"
+Write-Host "Luego, accede a http://localhost:8081 (para port-forward) o al puerto mostrado por tunnel."
+
 Write-Host "Flujo completo finalizado exitosamente."
-Write-Host "Verifica con: kubectl get pods -n ecommerce-dev"
