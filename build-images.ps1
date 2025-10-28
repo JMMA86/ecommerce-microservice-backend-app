@@ -1,3 +1,16 @@
+# Set Docker environment to use minikube's Docker daemon
+Write-Host "Configurando Docker para usar el daemon de minikube..."
+$envOutput = & minikube docker-env --shell powershell 2>$null
+if ($envOutput) {
+    foreach ($line in $envOutput) {
+        Invoke-Expression $line
+    }
+    Write-Host "Docker configurado para minikube."
+} else {
+    Write-Host "Error al configurar Docker para minikube."
+    exit 1
+}
+
 docker build -t ecommerce/service-discovery:latest ./service-discovery
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
