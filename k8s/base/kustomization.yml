@@ -14,4 +14,5 @@ resources:
 - shipping-service.yml
 - user-service.yml
 - favourite-service.yml
+- jenkins.yml
 namespace: ecommerce
