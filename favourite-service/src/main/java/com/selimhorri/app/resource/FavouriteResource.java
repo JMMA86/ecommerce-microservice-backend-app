@@ -20,6 +20,7 @@ import com.selimhorri.app.constant.AppConstant;
 import com.selimhorri.app.domain.id.FavouriteId;
 import com.selimhorri.app.dto.FavouriteDto;
 import com.selimhorri.app.dto.response.collection.DtoCollectionResponse;
+import com.selimhorri.app.exception.wrapper.ValidationException;
 import com.selimhorri.app.service.FavouriteService;
 
 import lombok.RequiredArgsConstructor;
@@ -45,9 +46,15 @@ public class FavouriteResource {
 			@PathVariable("productId") final String productId, 
 			@PathVariable("likeDate") final String likeDate) {
 		log.info("*** FavouriteDto, resource; fetch favourite by id *");
+		
+		// Validate path variables
+		this.validateId(userId, "userId");
+		this.validateId(productId, "productId");
+		
 		return ResponseEntity.ok(this.favouriteService.findById(
 				new FavouriteId(Integer.parseInt(userId), Integer.parseInt(productId), 
 						LocalDateTime.parse(likeDate, DateTimeFormatter.ofPattern(AppConstant.LOCAL_DATE_TIME_FORMAT)))));
+
 	}
 	
 	@GetMapping("/find")
@@ -83,6 +90,11 @@ public class FavouriteResource {
 			@PathVariable("productId") final String productId, 
 			@PathVariable("likeDate") final String likeDate) {
 		log.info("*** Boolean, resource; delete favourite by id *");
+		
+		// Validate path variables
+		this.validateId(userId, "userId");
+		this.validateId(productId, "productId");
+		
 		this.favouriteService.deleteById(new FavouriteId(Integer.parseInt(userId), Integer.parseInt(productId), 
 						LocalDateTime.parse(likeDate, DateTimeFormatter.ofPattern(AppConstant.LOCAL_DATE_TIME_FORMAT))));
 		return ResponseEntity.ok(true);
@@ -98,8 +110,17 @@ public class FavouriteResource {
 		return ResponseEntity.ok(true);
 	}
 	
-	
-	
+	private void validateId(final String id, final String fieldName) {
+		try {
+			final var parsedId = Integer.parseInt(id);
+			if (parsedId <= 0) {
+				throw new ValidationException(fieldName + " must be positive");
+			}
+		}
+		catch (NumberFormatException e) {
+			throw new ValidationException(fieldName + " must be a valid number");
+		}
+	}
 }
 
 
