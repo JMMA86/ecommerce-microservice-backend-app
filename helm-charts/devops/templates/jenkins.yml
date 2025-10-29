@@ -93,6 +93,6 @@ roleRef:
   kind: ClusterRole
   name: cluster-admin
 subjects:
-- kind: ServiceAccount
-  name: jenkins-sa
-  namespace: devops
+  - kind: ServiceAccount
+    name: jenkins-sa
+    namespace: devops
