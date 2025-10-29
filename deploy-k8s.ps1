@@ -1,9 +1,9 @@
-Write-Host "Aplicando manifiestos de Kubernetes con Kustomize (overlay dev)..."
+Write-Host "Desplegando con Helm..."
 
-kustomize build k8s/overlays/dev | kubectl apply -k k8s/base/
+helm upgrade --install devops-tools ./helm-charts/devops --namespace devops
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Error aplicando overlay dev"
+    Write-Host "Error desplegando con Helm"
     exit 1
 }
 
-Write-Host "Despliegue completado. Verifica con: kubectl get pods -n ecommerce"
+Write-Host "Despliegue completado."

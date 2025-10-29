@@ -1,9 +1,32 @@
 pipeline {
-    agent any
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: devops
+spec:
+  serviceAccountName: jenkins-sa
+  containers:
+  - name: maven
+    image: maven:3.9.6-eclipse-temurin-17
+    command:
+    - cat
+    tty: true
+  - name: docker
+    image: docker:dind
+    securityContext:
+      privileged: true
+    command:
+    - dockerd
+    tty: true
+'''
+        }
+    }
 
     environment {
         DOCKER_REGISTRY = 'your-registry.com'
-        KUBECONFIG = credentials('kubeconfig')
     }
 
     stages {
@@ -15,23 +38,29 @@ pipeline {
 
         stage('Build with Maven') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                container('maven') {
+                    script {
+                        def services = ['favourite-service', 'order-service', 'payment-service', 'product-service', 'service-discovery', 'shipping-service', 'user-service']
+                        services.each { service ->
+                            dir(service) {
+                                sh 'mvn clean package -DskipTests'
+                            }
+                        }
+                    }
+                }
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'mvn test'
-            }
-        }
-
-        stage('Build Docker Images') {
-            steps {
-                script {
-                    def services = ['service-discovery', 'cloud-config', 'api-gateway', 'proxy-client', 'user-service', 'product-service', 'favourite-service', 'order-service', 'shipping-service', 'payment-service']
-                    services.each { service ->
-                        sh "docker build -t ${DOCKER_REGISTRY}/ecommerce/${service}:latest ./${service}"
-                        sh "docker push ${DOCKER_REGISTRY}/ecommerce/${service}:latest"
+                container('maven') {
+                    script {
+                        def services = ['favourite-service', 'order-service', 'payment-service', 'product-service', 'service-discovery', 'shipping-service', 'user-service']
+                        services.each { service ->
+                            dir(service) {
+                                sh 'mvn test'
+                            }
+                        }
                     }
                 }
             }
@@ -39,16 +68,23 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f k8s/namespace.yml'
-                sh 'kubectl apply -f k8s/configmap.yml'
-                sh 'kubectl apply -f k8s/'
+                container('maven') {
+                    sh '''
+                        curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+                        chmod +x kubectl
+                        ./kubectl create namespace ecommerce-dev --dry-run=client -o yaml | ./kubectl apply -f -
+                        helm upgrade --install ecommerce ./helm-charts/ecommerce --namespace ecommerce-dev
+                    '''
+                }
             }
         }
     }
 
     post {
         always {
-            sh 'docker system prune -f'
+            container('docker') {
+                sh 'docker system prune -f'
+            }
         }
     }
 }
