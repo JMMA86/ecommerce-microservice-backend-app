@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.selimhorri.app.dto.CartDto;
 import com.selimhorri.app.dto.response.collection.DtoCollectionResponse;
+import com.selimhorri.app.exception.wrapper.ValidationException;
 import com.selimhorri.app.service.CartService;
 
 import lombok.RequiredArgsConstructor;
@@ -41,7 +42,16 @@ public class CartResource {
 			@NotBlank(message = "Input must not be blank") 
 			@Valid final String cartId) {
 		log.info("*** CartDto, resource; fetch cart by id *");
-		return ResponseEntity.ok(this.cartService.findById(Integer.parseInt(cartId)));
+		
+		try {
+			final var id = Integer.parseInt(cartId);
+			if (id <= 0) {
+				throw new ValidationException("Cart ID must be a positive integer");
+			}
+			return ResponseEntity.ok(this.cartService.findById(id));
+		} catch (NumberFormatException e) {
+			throw new ValidationException("Cart ID must be a valid integer");
+		}
 	}
 	
 	@PostMapping
@@ -71,14 +81,32 @@ public class CartResource {
 			@NotNull(message = "Input must not be NULL") 
 			@Valid final CartDto cartDto) {
 		log.info("*** CartDto, resource; update cart with cartId *");
-		return ResponseEntity.ok(this.cartService.update(Integer.parseInt(cartId), cartDto));
+		
+		try {
+			final var id = Integer.parseInt(cartId);
+			if (id <= 0) {
+				throw new ValidationException("Cart ID must be a positive integer");
+			}
+			return ResponseEntity.ok(this.cartService.update(id, cartDto));
+		} catch (NumberFormatException e) {
+			throw new ValidationException("Cart ID must be a valid integer");
+		}
 	}
 	
 	@DeleteMapping("/{cartId}")
 	public ResponseEntity<Boolean> deleteById(@PathVariable("cartId") final String cartId) {
 		log.info("*** Boolean, resource; delete cart by id *");
-		this.cartService.deleteById(Integer.parseInt(cartId));
-		return ResponseEntity.ok(true);
+		
+		try {
+			final var id = Integer.parseInt(cartId);
+			if (id <= 0) {
+				throw new ValidationException("Cart ID must be a positive integer");
+			}
+			this.cartService.deleteById(id);
+			return ResponseEntity.ok(true);
+		} catch (NumberFormatException e) {
+			throw new ValidationException("Cart ID must be a valid integer");
+		}
 	}
 	
 	

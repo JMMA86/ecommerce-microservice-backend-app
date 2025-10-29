@@ -1,0 +1,6 @@
+spring:
+  config:
+    import: ""
+eureka:
+  client:
+    enabled: false

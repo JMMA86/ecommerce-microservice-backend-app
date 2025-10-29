@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.selimhorri.app.dto.OrderDto;
 import com.selimhorri.app.dto.response.collection.DtoCollectionResponse;
+import com.selimhorri.app.exception.wrapper.ValidationException;
 import com.selimhorri.app.service.OrderService;
 
 import lombok.RequiredArgsConstructor;
@@ -41,7 +42,16 @@ public class OrderResource {
 			@NotBlank(message = "Input must not be blank") 
 			@Valid final String orderId) {
 		log.info("*** OrderDto, resource; fetch order by id *");
-		return ResponseEntity.ok(this.orderService.findById(Integer.parseInt(orderId)));
+		
+		try {
+			final var id = Integer.parseInt(orderId);
+			if (id <= 0) {
+				throw new ValidationException("Order ID must be a positive integer");
+			}
+			return ResponseEntity.ok(this.orderService.findById(id));
+		} catch (NumberFormatException e) {
+			throw new ValidationException("Order ID must be a valid integer");
+		}
 	}
 	
 	@PostMapping
@@ -71,14 +81,32 @@ public class OrderResource {
 			@NotNull(message = "Input must not be NULL") 
 			@Valid final OrderDto orderDto) {
 		log.info("*** OrderDto, resource; update order with orderId *");
-		return ResponseEntity.ok(this.orderService.update(Integer.parseInt(orderId), orderDto));
+		
+		try {
+			final var id = Integer.parseInt(orderId);
+			if (id <= 0) {
+				throw new ValidationException("Order ID must be a positive integer");
+			}
+			return ResponseEntity.ok(this.orderService.update(id, orderDto));
+		} catch (NumberFormatException e) {
+			throw new ValidationException("Order ID must be a valid integer");
+		}
 	}
 	
 	@DeleteMapping("/{orderId}")
 	public ResponseEntity<Boolean> deleteById(@PathVariable("orderId") final String orderId) {
 		log.info("*** Boolean, resource; delete order by id *");
-		this.orderService.deleteById(Integer.parseInt(orderId));
-		return ResponseEntity.ok(true);
+		
+		try {
+			final var id = Integer.parseInt(orderId);
+			if (id <= 0) {
+				throw new ValidationException("Order ID must be a positive integer");
+			}
+			this.orderService.deleteById(id);
+			return ResponseEntity.ok(true);
+		} catch (NumberFormatException e) {
+			throw new ValidationException("Order ID must be a valid integer");
+		}
 	}
 	
 	

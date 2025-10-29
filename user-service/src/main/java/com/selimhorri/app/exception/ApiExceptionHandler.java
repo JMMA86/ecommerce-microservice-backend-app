@@ -6,7 +6,6 @@ import java.time.ZonedDateTime;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,19 +25,33 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ApiExceptionHandler {
 	
-	@SuppressWarnings("null")
-	@ExceptionHandler(value = {
-		MethodArgumentNotValidException.class,
-		HttpMessageNotReadableException.class
-	})
-	public <T extends BindException> ResponseEntity<ExceptionMsg> handleValidationException(final T e) {
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ResponseEntity<ExceptionMsg> handleMethodArgumentNotValidException(final MethodArgumentNotValidException e) {
+		
+		log.info("**ApiExceptionHandler controller, handle validation exception*\n");
+		final var badRequest = HttpStatus.BAD_REQUEST;
+		
+		final var fieldError = e.getBindingResult().getFieldError();
+		final var errorMessage = fieldError != null ? fieldError.getDefaultMessage() : "Validation error";
+		
+		return new ResponseEntity<>(
+				ExceptionMsg.builder()
+					.msg("*" + errorMessage + "!**")
+					.httpStatus(badRequest)
+					.timestamp(ZonedDateTime
+							.now(ZoneId.systemDefault()))
+					.build(), badRequest);
+	}
+	
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<ExceptionMsg> handleHttpMessageNotReadableException(final HttpMessageNotReadableException e) {
 		
 		log.info("**ApiExceptionHandler controller, handle validation exception*\n");
 		final var badRequest = HttpStatus.BAD_REQUEST;
 		
 		return new ResponseEntity<>(
 				ExceptionMsg.builder()
-					.msg("*" + e.getBindingResult().getFieldError().getDefaultMessage() + "!**")
+					.msg("*JSON parse error: " + e.getMessage() + "!**")
 					.httpStatus(badRequest)
 					.timestamp(ZonedDateTime
 							.now(ZoneId.systemDefault()))
