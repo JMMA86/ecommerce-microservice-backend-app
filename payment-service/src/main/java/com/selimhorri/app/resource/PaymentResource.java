@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.selimhorri.app.dto.PaymentDto;
 import com.selimhorri.app.dto.response.collection.DtoCollectionResponse;
+import com.selimhorri.app.exception.wrapper.ValidationException;
 import com.selimhorri.app.service.PaymentService;
 
 import lombok.RequiredArgsConstructor;
@@ -41,7 +42,15 @@ public class PaymentResource {
 			@NotBlank(message = "Input must not be blank") 
 			@Valid final String paymentId) {
 		log.info("*** PaymentDto, resource; fetch payment by id *");
-		return ResponseEntity.ok(this.paymentService.findById(Integer.parseInt(paymentId)));
+		try {
+			final int id = Integer.parseInt(paymentId.strip());
+			if (id <= 0) {
+				throw new ValidationException("Payment ID must be a positive integer");
+			}
+			return ResponseEntity.ok(this.paymentService.findById(id));
+		} catch (NumberFormatException e) {
+			throw new ValidationException("Invalid payment ID format");
+		}
 	}
 	
 	@PostMapping
@@ -65,8 +74,16 @@ public class PaymentResource {
 	@DeleteMapping("/{paymentId}")
 	public ResponseEntity<Boolean> deleteById(@PathVariable("paymentId") final String paymentId) {
 		log.info("*** Boolean, resource; delete payment by id *");
-		this.paymentService.deleteById(Integer.parseInt(paymentId));
-		return ResponseEntity.ok(true);
+		try {
+			final int id = Integer.parseInt(paymentId.strip());
+			if (id <= 0) {
+				throw new ValidationException("Payment ID must be a positive integer");
+			}
+			this.paymentService.deleteById(id);
+			return ResponseEntity.ok(true);
+		} catch (NumberFormatException e) {
+			throw new ValidationException("Invalid payment ID format");
+		}
 	}
 	
 	

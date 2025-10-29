@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.selimhorri.app.exception.payload.ExceptionMsg;
 import com.selimhorri.app.exception.wrapper.PaymentNotFoundException;
+import com.selimhorri.app.exception.wrapper.ValidationException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,21 @@ public class ApiExceptionHandler {
 	public <T extends RuntimeException> ResponseEntity<ExceptionMsg> handleApiRequestException(final T e) {
 		
 		log.info("**ApiExceptionHandler controller, handle API request*\n");
+		final var notFound = HttpStatus.NOT_FOUND;
+		
+		return new ResponseEntity<>(
+				ExceptionMsg.builder()
+					.msg("#### " + e.getMessage() + "! ####")
+					.httpStatus(notFound)
+					.timestamp(ZonedDateTime
+							.now(ZoneId.systemDefault()))
+					.build(), notFound);
+	}
+	
+	@ExceptionHandler(value = { ValidationException.class })
+	public ResponseEntity<ExceptionMsg> handleValidationException(final ValidationException e) {
+		
+		log.info("**ApiExceptionHandler controller, handle validation exception*\n");
 		final var badRequest = HttpStatus.BAD_REQUEST;
 		
 		return new ResponseEntity<>(
