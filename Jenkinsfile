@@ -26,6 +26,11 @@ spec:
     command:
     - cat
     tty: true
+  - name: node
+    image: node:18
+    command:
+    - cat
+    tty: true
 '''
         }
     }
@@ -95,6 +100,18 @@ spec:
                         kubectl create namespace ecommerce-dev --dry-run=client -o yaml | kubectl apply -f -
                         helm upgrade --install ecommerce ./helm-charts/ecommerce --namespace ecommerce-dev
                     '''
+                }
+            }
+        }
+
+        stage('Run E2E Tests') {
+            steps {
+                container('node') {
+                    sh 'sleep 60'
+                    dir('e2e-tests') {
+                        sh 'npm install'
+                        sh 'npm test'
+                    }
                 }
             }
         }
