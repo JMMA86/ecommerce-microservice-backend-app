@@ -1,7 +1,8 @@
 package com.selimhorri.app.resource;
 
+import com.selimhorri.app.exception.wrapper.ValidationException;
+
 import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.http.ResponseEntity;
@@ -36,12 +37,17 @@ public class UserResource {
 	}
 	
 	@GetMapping("/{userId}")
-	public ResponseEntity<UserDto> findById(
-			@PathVariable("userId") 
-			@NotBlank(message = "Input must not blank") 
-			@Valid final String userId) {
+	public ResponseEntity<UserDto> findById(@PathVariable("userId") final String userId) {
 		log.info("*** UserDto, resource; fetch user by id *");
-		return ResponseEntity.ok(this.userService.findById(Integer.parseInt(userId.strip())));
+		try {
+			final int id = Integer.parseInt(userId.strip());
+			if (id <= 0) {
+				throw new ValidationException("User ID must be a positive integer");
+			}
+			return ResponseEntity.ok(this.userService.findById(id));
+		} catch (NumberFormatException e) {
+			throw new ValidationException("Invalid user ID format");
+		}
 	}
 	
 	@PostMapping
@@ -64,28 +70,44 @@ public class UserResource {
 	
 	@PutMapping("/{userId}")
 	public ResponseEntity<UserDto> update(
-			@PathVariable("userId") 
-			@NotBlank(message = "Input must not blank") final String userId, 
+			@PathVariable("userId") final String userId, 
 			@RequestBody 
 			@NotNull(message = "Input must not NULL") 
 			@Valid final UserDto userDto) {
 		log.info("*** UserDto, resource; update user with userId *");
-		return ResponseEntity.ok(this.userService.update(Integer.parseInt(userId.strip()), userDto));
+		try {
+			final int id = Integer.parseInt(userId.strip());
+			if (id <= 0) {
+				throw new ValidationException("User ID must be a positive integer");
+			}
+			return ResponseEntity.ok(this.userService.update(id, userDto));
+		} catch (NumberFormatException e) {
+			throw new ValidationException("Invalid user ID format");
+		}
 	}
 	
 	@DeleteMapping("/{userId}")
-	public ResponseEntity<Boolean> deleteById(@PathVariable("userId") @NotBlank(message = "Input must not blank") @Valid final String userId) {
+	public ResponseEntity<Boolean> deleteById(@PathVariable("userId") final String userId) {
 		log.info("*** Boolean, resource; delete user by id *");
-		this.userService.deleteById(Integer.parseInt(userId));
-		return ResponseEntity.ok(true);
+		try {
+			final int id = Integer.parseInt(userId.strip());
+			if (id <= 0) {
+				throw new ValidationException("User ID must be a positive integer");
+			}
+			this.userService.deleteById(id);
+			return ResponseEntity.ok(true);
+		} catch (NumberFormatException e) {
+			throw new ValidationException("Invalid user ID format");
+		}
 	}
 	
 	@GetMapping("/username/{username}")
-	public ResponseEntity<UserDto> findByUsername(
-			@PathVariable("username") 
-			@NotBlank(message = "Input must not blank") 
-			@Valid final String username) {
-		return ResponseEntity.ok(this.userService.findByUsername(username));
+	public ResponseEntity<UserDto> findByUsername(@PathVariable("username") final String username) {
+		log.info("*** UserDto, resource; fetch user by username *");
+		if (username == null || username.strip().isEmpty()) {
+			throw new ValidationException("Username must not be blank");
+		}
+		return ResponseEntity.ok(this.userService.findByUsername(username.strip()));
 	}
 	
 	

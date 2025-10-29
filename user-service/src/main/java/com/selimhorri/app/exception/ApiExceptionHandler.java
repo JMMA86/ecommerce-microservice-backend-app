@@ -16,6 +16,7 @@ import com.selimhorri.app.exception.wrapper.AddressNotFoundException;
 import com.selimhorri.app.exception.wrapper.CredentialNotFoundException;
 import com.selimhorri.app.exception.wrapper.UserObjectNotFoundException;
 import com.selimhorri.app.exception.wrapper.VerificationTokenNotFoundException;
+import com.selimhorri.app.exception.wrapper.ValidationException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ApiExceptionHandler {
 	
+	@SuppressWarnings("null")
 	@ExceptionHandler(value = {
 		MethodArgumentNotValidException.class,
 		HttpMessageNotReadableException.class
@@ -52,6 +54,21 @@ public class ApiExceptionHandler {
 	public <T extends RuntimeException> ResponseEntity<ExceptionMsg> handleApiRequestException(final T e) {
 		
 		log.info("**ApiExceptionHandler controller, handle API request*\n");
+		final var notFound = HttpStatus.NOT_FOUND;
+		
+		return new ResponseEntity<>(
+				ExceptionMsg.builder()
+					.msg("#### " + e.getMessage() + "! ####")
+					.httpStatus(notFound)
+					.timestamp(ZonedDateTime
+							.now(ZoneId.systemDefault()))
+					.build(), notFound);
+	}
+	
+	@ExceptionHandler(ValidationException.class)
+	public ResponseEntity<ExceptionMsg> handleValidationException(final ValidationException e) {
+		
+		log.info("**ApiExceptionHandler controller, handle validation exception*\n");
 		final var badRequest = HttpStatus.BAD_REQUEST;
 		
 		return new ResponseEntity<>(
@@ -62,9 +79,6 @@ public class ApiExceptionHandler {
 							.now(ZoneId.systemDefault()))
 					.build(), badRequest);
 	}
-	
-	
-	
 }
 
 

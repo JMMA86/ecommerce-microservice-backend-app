@@ -51,7 +51,7 @@ spec:
             }
         }
 
-        stage('Run Tests') {
+        stage('Run Unitary Tests') {
             steps {
                 container('maven') {
                     script {
@@ -59,6 +59,21 @@ spec:
                         services.each { service ->
                             dir(service) {
                                 sh 'mvn test'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage ('Run Integration Tests') {
+            steps {
+                container('maven') {
+                    script {
+                        def services = ['favourite-service', 'order-service', 'payment-service', 'product-service', 'service-discovery', 'shipping-service', 'user-service']
+                        services.each { service ->
+                            dir(service) {
+                                sh 'mvn verify -Pintegration-tests'
                             }
                         }
                     }
