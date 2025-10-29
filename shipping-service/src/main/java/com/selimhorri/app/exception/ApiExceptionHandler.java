@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.selimhorri.app.exception.payload.ExceptionMsg;
+import com.selimhorri.app.exception.wrapper.OrderItemNotFoundException;
+import com.selimhorri.app.exception.wrapper.ValidationException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,8 +58,35 @@ public class ApiExceptionHandler {
 					.build(), badRequest);
 	}
 	
+	@ExceptionHandler(ValidationException.class)
+	public ResponseEntity<ExceptionMsg> handleValidationException(final ValidationException e) {
+		
+		log.info("**ApiExceptionHandler controller, handle validation exception*\n");
+		final var badRequest = HttpStatus.BAD_REQUEST;
+		
+		return new ResponseEntity<>(
+				ExceptionMsg.builder()
+					.msg("#### " + e.getMessage() + "! ####")
+					.httpStatus(badRequest)
+					.timestamp(ZonedDateTime
+							.now(ZoneId.systemDefault()))
+					.build(), badRequest);
+	}
 	
-	
+	@ExceptionHandler(OrderItemNotFoundException.class)
+	public ResponseEntity<ExceptionMsg> handleNotFoundException(final OrderItemNotFoundException e) {
+		
+		log.info("**ApiExceptionHandler controller, handle not found exception*\n");
+		final var notFound = HttpStatus.NOT_FOUND;
+		
+		return new ResponseEntity<>(
+				ExceptionMsg.builder()
+					.msg("#### " + e.getMessage() + "! ####")
+					.httpStatus(notFound)
+					.timestamp(ZonedDateTime
+							.now(ZoneId.systemDefault()))
+					.build(), notFound);
+	}
 }
 
 
