@@ -104,14 +104,60 @@ spec:
             }
         }
 
+        stage('Wait for Services') {
+            steps {
+                container('kubectl') {
+                    sh '''
+                        echo "Waiting for deployments to be ready..."
+                        kubectl wait --for=condition=available --timeout=300s deployment --all -n ecommerce-dev || true
+                        
+                        echo "Listing all services in ecommerce-dev namespace:"
+                        kubectl get svc -n ecommerce-dev
+                        
+                        echo "Listing all pods in ecommerce-dev namespace:"
+                        kubectl get pods -n ecommerce-dev
+                        
+                        echo "Waiting additional 30 seconds for services to stabilize..."
+                        sleep 30
+                    '''
+                }
+            }
+        }
+
         stage('Run E2E Tests') {
             steps {
                 container('node') {
-                    sh 'apt-get update && apt-get install -y libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3-dev libxss1 libasound2-dev libxtst6 xauth xvfb'
-                    sh 'sleep 60'
+                    sh 'apt-get update && apt-get install -y libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3-dev libxss1 libasound2-dev libxtst6 xauth xvfb curl'
                     dir('e2e-tests') {
                         sh 'npm install'
-                        sh 'xvfb-run -a npm test'
+                        sh '''
+                            # Test connectivity to API Gateway before running tests
+                            echo "Testing connectivity to API Gateway..."
+                            max_attempts=30
+                            attempt=1
+                            
+                            while [ $attempt -le $max_attempts ]; do
+                                echo "Attempt $attempt of $max_attempts..."
+                                if curl -f http://api-gateway.ecommerce-dev.svc.cluster.local:8300/actuator/health; then
+                                    echo "API Gateway is ready!"
+                                    break
+                                fi
+                                
+                                if [ $attempt -eq $max_attempts ]; then
+                                    echo "API Gateway did not become ready in time"
+                                    exit 1
+                                fi
+                                
+                                echo "Waiting 10 seconds before retry..."
+                                sleep 10
+                                attempt=$((attempt + 1))
+                            done
+                            
+                            # Run Cypress tests
+                            export CYPRESS_BASE_URL=http://api-gateway.ecommerce-dev.svc.cluster.local:8300
+                            export CYPRESS_EUREKA_URL=http://service-discovery.ecommerce-dev.svc.cluster.local:8761
+                            xvfb-run -a npx cypress run --config baseUrl=http://api-gateway.ecommerce-dev.svc.cluster.local:8300
+                        '''
                     }
                 }
             }

@@ -1,5 +1,5 @@
 describe("User Service E2E Tests", () => {
-  const baseUrl = "http://localhost:8700/user-service/api/users";
+  const baseUrl = `${Cypress.config('baseUrl')}/user-service/api/users`;
   let createdUserId;
 
   it("1. Should create a new user", () => {

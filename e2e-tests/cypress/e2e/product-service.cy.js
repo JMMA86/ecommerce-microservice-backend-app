@@ -1,5 +1,5 @@
 describe("Product Service E2E Tests", () => {
-  const baseUrl = "http://localhost:8500/product-service";
+  const baseUrl = `${Cypress.config('baseUrl')}/product-service`;
   let createdCategoryId;
   let createdProductId;
 

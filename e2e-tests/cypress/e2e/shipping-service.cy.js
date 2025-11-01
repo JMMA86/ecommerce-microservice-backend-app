@@ -1,5 +1,5 @@
 describe("Shipping Service E2E Tests", () => {
-  const baseUrl = "http://localhost:8600/shipping-service";
+  const baseUrl = `${Cypress.config('baseUrl')}/shipping-service`;
   let createdOrderId = 1; // Assuming order exists
   let createdProductId = 1; // Assuming product exists
 

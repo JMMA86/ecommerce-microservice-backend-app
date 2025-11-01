@@ -1,5 +1,5 @@
 describe("Favourite Service E2E Tests", () => {
-  const baseUrl = "http://localhost:8800/favourite-service";
+  const baseUrl = `${Cypress.config('baseUrl')}/favourite-service`;
   let createdUserId = 1; // Assuming user exists
   let createdProductId = 1; // Assuming product exists
   let likeDate = "2023-10-29T10:00:00";

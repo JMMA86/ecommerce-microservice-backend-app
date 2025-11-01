@@ -1,5 +1,5 @@
 describe("Payment Service E2E Tests", () => {
-  const baseUrl = "http://localhost:8400/payment-service";
+  const baseUrl = `${Cypress.config('baseUrl')}/payment-service`;
   let createdPaymentId;
 
   it("1. Should create a new payment", () => {

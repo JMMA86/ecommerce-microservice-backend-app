@@ -1,5 +1,6 @@
 describe("Service Discovery E2E Tests", () => {
-  const baseUrl = "http://localhost:8761";
+  // Service Discovery is accessed directly, not through API Gateway
+  const baseUrl = process.env.CYPRESS_EUREKA_URL || "http://localhost:8761";
 
   it("1. Should access Eureka dashboard", () => {
     cy.request(baseUrl).then((response) => {
