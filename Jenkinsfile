@@ -50,7 +50,7 @@ spec:
             steps {
                 container('maven') {
                     script {
-                        def services = ['favourite-service', 'order-service', 'payment-service', 'product-service', 'service-discovery', 'shipping-service', 'user-service']
+                        def services = ['api-gateway', 'cloud-config', 'favourite-service', 'order-service', 'payment-service', 'product-service', 'proxy-client', 'service-discovery', 'shipping-service', 'user-service']
                         services.each { service ->
                             dir(service) {
                                 sh 'mvn clean package -DskipTests'
@@ -65,7 +65,7 @@ spec:
             steps {
                 container('maven') {
                     script {
-                        def services = ['favourite-service', 'order-service', 'payment-service', 'product-service', 'service-discovery', 'shipping-service', 'user-service']
+                        def services = ['api-gateway', 'cloud-config', 'favourite-service', 'order-service', 'payment-service', 'product-service', 'proxy-client', 'service-discovery', 'shipping-service', 'user-service']
                         services.each { service ->
                             dir(service) {
                                 sh 'mvn test'
@@ -80,7 +80,7 @@ spec:
             steps {
                 container('maven') {
                     script {
-                        def services = ['favourite-service', 'order-service', 'payment-service', 'product-service', 'service-discovery', 'shipping-service', 'user-service']
+                        def services = ['api-gateway', 'cloud-config', 'favourite-service', 'order-service', 'payment-service', 'product-service', 'proxy-client', 'service-discovery', 'shipping-service', 'user-service']
                         services.each { service ->
                             dir(service) {
                                 sh 'mvn verify -Pintegration-tests'
@@ -104,11 +104,19 @@ spec:
             }
         }
 
+        stage('Start Services') {
+            steps {
+                container('docker') {
+                    sh 'docker-compose up -d'
+                }
+            }
+        }
+
         stage('Run E2E Tests') {
             steps {
                 container('node') {
                     sh 'apt-get update && apt-get install -y libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3-dev libxss1 libasound2-dev libxtst6 xauth xvfb'
-                    sh 'sleep 60'
+                    sh 'sleep 120'
                     dir('e2e-tests') {
                         sh 'npm install'
                         sh 'xvfb-run -a npm test'

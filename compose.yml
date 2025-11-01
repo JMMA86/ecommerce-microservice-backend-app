@@ -1,12 +1,31 @@
 services:
+  service-discovery-container:
+    build:
+      context: ./service-discovery
+      dockerfile: Dockerfile
+    ports:
+      - 8761:8761
+    network_mode: host
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+
+  cloud-config-container:
+    build:
+      context: ./cloud-config
+      dockerfile: Dockerfile
+    ports:
+      - 9296:9296
+    network_mode: host
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+
   api-gateway-container:
     build:
       context: ./api-gateway
       dockerfile: Dockerfile
     ports:
       - 8080:8080
-    networks:
-      - microservices_network
+    network_mode: host
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_ZIPKIN_BASE-URL=http://zipkin:9411
@@ -29,8 +48,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8900:8900
-    networks:
-      - microservices_network
+    network_mode: host
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_ZIPKIN_BASE-URL=http://zipkin:9411
@@ -53,8 +71,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8300:8300
-    networks:
-      - microservices_network
+    network_mode: host
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_ZIPKIN_BASE-URL=http://zipkin:9411
@@ -77,8 +94,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8400:8400
-    networks:
-      - microservices_network
+    network_mode: host
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_ZIPKIN_BASE-URL=http://zipkin:9411
@@ -101,8 +117,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8500:8500
-    networks:
-      - microservices_network
+    network_mode: host
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_ZIPKIN_BASE-URL=http://zipkin:9411
@@ -125,8 +140,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8600:8600
-    networks:
-      - microservices_network
+    network_mode: host
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_ZIPKIN_BASE-URL=http://zipkin:9411
@@ -149,8 +163,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8700:8700
-    networks:
-      - microservices_network
+    network_mode: host
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_ZIPKIN_BASE-URL=http://zipkin:9411
@@ -173,8 +186,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8800:8800
-    networks:
-      - microservices_network
+    network_mode: host
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_ZIPKIN_BASE-URL=http://zipkin:9411
@@ -190,7 +202,3 @@ services:
         condition: service_healthy
       cloud-config-container:
         condition: service_healthy
-
-networks:
-  microservices_network:
-    driver: bridge
