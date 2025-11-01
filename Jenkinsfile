@@ -27,7 +27,7 @@ spec:
     - cat
     tty: true
   - name: node
-    image: node:18
+    image: node:20
     command:
     - cat
     tty: true
@@ -108,7 +108,7 @@ spec:
             steps {
                 container('node') {
                     sh 'apt-get update && apt-get install -y libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3-dev libxss1 libasound2-dev libxtst6 xauth xvfb'
-                    sh 'sleep 60'  // Wait for services to be ready
+                    sh 'sleep 60'
                     dir('e2e-tests') {
                         sh 'npm install'
                         sh 'xvfb-run -a npm test'
