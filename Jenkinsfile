@@ -1,4 +1,8 @@
 pipeline {
+    options {
+        disableResume()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
     agent {
         kubernetes {
             yaml '''
@@ -107,19 +111,60 @@ spec:
         stage('Wait for Services') {
             steps {
                 container('kubectl') {
-                    sh '''
-                        echo "Waiting for deployments to be ready..."
-                        kubectl wait --for=condition=available --timeout=300s deployment --all -n ecommerce-dev || true
-                        
-                        echo "Listing all services in ecommerce-dev namespace:"
-                        kubectl get svc -n ecommerce-dev
-                        
-                        echo "Listing all pods in ecommerce-dev namespace:"
-                        kubectl get pods -n ecommerce-dev
-                        
-                        echo "Waiting additional 30 seconds for services to stabilize..."
-                        sleep 30
-                    '''
+                    script {
+                        def deploymentsOutput = sh(script: "kubectl get deployments -n ecommerce-dev -o jsonpath='{range .items[*]}{.metadata.name}{\"\\n\"}{end}'", returnStdout: true).trim()
+                        def deployments = deploymentsOutput ? deploymentsOutput.split('\n') : []
+
+                        if (deployments.isEmpty()) {
+                            error('No deployments found in namespace ecommerce-dev. Verify the Helm release name and namespace.')
+                        }
+
+                        echo "Waiting for deployments to be ready: ${deployments.join(', ')}"
+                        deployments.each { deployment ->
+                            sh "kubectl rollout status deployment/${deployment} -n ecommerce-dev --timeout=300s"
+                        }
+
+                        sh '''
+                            echo "Listing all services in ecommerce-dev namespace:"
+                            kubectl get svc -n ecommerce-dev
+
+                            echo "Listing all pods in ecommerce-dev namespace:"
+                            kubectl get pods -n ecommerce-dev
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Resolve API Gateway Endpoint') {
+            steps {
+                container('kubectl') {
+                    script {
+                        def resolveAddress = { ->
+                            def ip = sh(script: "kubectl get svc api-gateway -n ecommerce-dev -o jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
+                            if (!ip) {
+                                ip = sh(script: "kubectl get svc api-gateway -n ecommerce-dev -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'", returnStdout: true).trim()
+                            }
+                            return ip
+                        }
+
+                        def address = resolveAddress()
+                        int attempts = 12
+
+                        while (!address && attempts > 0) {
+                            echo 'Waiting for LoadBalancer external address (ensure minikube tunnel is running)...'
+                            sleep(time: 10, unit: 'SECONDS')
+                            address = resolveAddress()
+                            attempts--
+                        }
+
+                        if (!address) {
+                            error('API Gateway LoadBalancer does not have an external address after waiting 120 seconds. Make sure a LoadBalancer controller (e.g., minikube tunnel) is running.')
+                        }
+
+                        env.API_GATEWAY_URL = "http://${address}:8300"
+                        echo "API Gateway external URL resolved to ${env.API_GATEWAY_URL}"
+                    }
                 }
             }
         }
@@ -130,34 +175,34 @@ spec:
                     sh 'apt-get update && apt-get install -y libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3-dev libxss1 libasound2-dev libxtst6 xauth xvfb curl'
                     dir('e2e-tests') {
                         sh 'npm install'
-                        sh '''
+                        sh """
                             # Test connectivity to API Gateway before running tests
-                            echo "Testing connectivity to API Gateway..."
+                            echo "Testing connectivity to API Gateway (${env.API_GATEWAY_URL})..."
                             max_attempts=30
                             attempt=1
-                            
-                            while [ $attempt -le $max_attempts ]; do
-                                echo "Attempt $attempt of $max_attempts..."
-                                if curl -f http://api-gateway.ecommerce-dev.svc.cluster.local:8300/actuator/health; then
+
+                            while [ \${attempt} -le \${max_attempts} ]; do
+                                echo "Attempt \${attempt} of \${max_attempts}..."
+                                if curl -f ${env.API_GATEWAY_URL}/actuator/health; then
                                     echo "API Gateway is ready!"
                                     break
                                 fi
-                                
-                                if [ $attempt -eq $max_attempts ]; then
+
+                                if [ \${attempt} -eq \${max_attempts} ]; then
                                     echo "API Gateway did not become ready in time"
                                     exit 1
                                 fi
-                                
+
                                 echo "Waiting 10 seconds before retry..."
                                 sleep 10
-                                attempt=$((attempt + 1))
+                                attempt=\$((attempt + 1))
                             done
-                            
+
                             # Run Cypress tests
-                            export CYPRESS_BASE_URL=http://api-gateway.ecommerce-dev.svc.cluster.local:8300
+                            export CYPRESS_BASE_URL=${env.API_GATEWAY_URL}
                             export CYPRESS_EUREKA_URL=http://service-discovery.ecommerce-dev.svc.cluster.local:8761
-                            xvfb-run -a npx cypress run --config baseUrl=http://api-gateway.ecommerce-dev.svc.cluster.local:8300
-                        '''
+                            xvfb-run -a npx cypress run --config baseUrl=${env.API_GATEWAY_URL}
+                        """
                     }
                 }
             }
@@ -166,8 +211,14 @@ spec:
 
     post {
         always {
-            container('docker') {
-                sh 'docker system prune -f'
+            script {
+                if (env.NODE_NAME) {
+                    container('docker') {
+                        sh 'docker system prune -f'
+                    }
+                } else {
+                    echo 'Skipping docker cleanup because no node context is available.'
+                }
             }
         }
     }
