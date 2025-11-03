@@ -1,7 +1,7 @@
 describe("Shipping Service E2E Tests", () => {
   const baseUrl = `${Cypress.config('baseUrl')}/shipping-service`;
-  let createdOrderId = 1; // Assuming order exists
-  let createdProductId = 1; // Assuming product exists
+  let createdOrderId = 1;
+  let createdProductId = 1;
 
   it("1. Should create a new order item", () => {
     const orderItemData = {

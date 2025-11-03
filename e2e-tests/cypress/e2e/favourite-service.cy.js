@@ -1,7 +1,7 @@
 describe("Favourite Service E2E Tests", () => {
   const baseUrl = `${Cypress.config('baseUrl')}/favourite-service`;
-  let createdUserId = 1; // Assuming user exists
-  let createdProductId = 1; // Assuming product exists
+  let createdUserId = 1;
+  let createdProductId = 1;
   let likeDate = "2023-10-29T10:00:00";
 
   it("1. Should create a new favourite", () => {

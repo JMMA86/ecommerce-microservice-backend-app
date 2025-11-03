@@ -6,7 +6,7 @@ describe("Payment Service E2E Tests", () => {
     const paymentData = {
       isPayed: false,
       paymentStatus: "PENDING",
-      orderDto: { orderId: 1 }, // Assuming order exists
+      orderDto: { orderId: 1 },
     };
 
     cy.request("POST", `${baseUrl}/api/payments`, paymentData).then(
