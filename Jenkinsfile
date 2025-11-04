@@ -112,8 +112,11 @@ spec:
             steps {
                 container('kubectl') {
                     script {
-                        def deploymentsOutput = sh(script: "kubectl get deployments -n ecommerce-dev -o jsonpath='{range .items[*]}{.metadata.name}{\"\\n\"}{end}'", returnStdout: true).trim()
-                        def deployments = deploymentsOutput ? deploymentsOutput.split('\n') : []
+                        def deploymentsOutput = sh(
+                            script: 'kubectl get deployments -n ecommerce-dev -o name || true',
+                            returnStdout: true
+                        ).trim()
+                        def deployments = deploymentsOutput ? deploymentsOutput.split('\n').collect { it.tokenize('/')[-1] } : []
 
                         if (deployments.isEmpty()) {
                             error('No deployments found in namespace ecommerce-dev. Verify the Helm release name and namespace.')
