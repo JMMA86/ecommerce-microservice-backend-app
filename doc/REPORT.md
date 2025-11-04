@@ -7,7 +7,7 @@
 - Se configuró un pipeline de Jenkins ejecutándose sobre un agente Kubernetes con contenedores dedicados para Maven, Docker, kubectl y Node, habilitando el build y despliegue de los microservicios seleccionados.
 - Se habilitaron etapas de construcción, pruebas unitarias, integración y E2E para los servicios `favourite-service`, `order-service`, `payment-service`, `product-service`, `service-discovery`, `shipping-service` y `user-service`.
 - El pipeline despliega los artefactos en el clúster Kubernetes del entorno `ecommerce-dev` mediante Helm y verifica el estado de los despliegues antes de ejecutar las pruebas end-to-end.
-- Las pruebas de rendimiento con Locust todavía no se han implementado; se mantiene un apartado para su integración posterior.
+- Se habilitó la ejecución opcional de pruebas de rendimiento con Locust para medir latencia y throughput desde el API Gateway.
 
 ## Configuración de la plataforma
 - **Jenkins**: se definió un `Jenkinsfile` con agente Kubernetes y un pod template que incluye los contenedores requeridos (Maven 3.9.6, Docker DinD, Helm/kubectl, Node 20).
@@ -15,13 +15,28 @@
 - **Kubernetes & Helm**: Helm Chart `helm-charts/ecommerce` ajustado para templating correcto del namespace y despliegue de los microservicios; se crea/elimina el namespace `ecommerce-dev` según la ejecución del pipeline.
 - **Gestión de secretos/config**: las variables de configuración se resuelven desde ConfigMaps compartidos (`microservices-config`) referenciados en los despliegues.
 
-_(Insertar imagen de la configuración del pod template en Jenkins)_
+## Configuración de Jenkins
+Se instalaron los plugins necesarios para la configuración del sistema y el pipeline (principalmente Git, Pipeline, Kubernetes y Stage View).
+
+Primero se crearon las credenciales necesarias para la conexión de Jenkins con Minikube y los demás servicios:
+![alt text](image.png)
+
+Estas credenciales se utilizaron en la creación de un Cloud de minikube (kubernetes) con la configuración necesaria de los enlaces:
+![alt text](image-1.png)
+![alt text](image-2.png)
+
+Después se procedió a crear el pipeline con la configuración del repositorio y las ramas involucradas (`dev` y `master`):
+![alt text](image-3.png)
+
+Además de otros parámetros que sirven para configurar el inicio de cada pipeline:
+
+
 
 ## Pipeline CI (Dev Environment)
 - **Configuración**: etapas `Checkout`, `Build with Maven` y `Run Unitary Tests`; se construyen sucesivamente los siete microservicios seleccionados ejecutando `mvn clean package` y `mvn test` en cada módulo.
 - **Resultado**: ejecución exitosa que produce artefactos listos para pruebas posteriores y valida que las pruebas unitarias personalizadas pasen.
 
-_(Insertar imagen de la ejecución del pipeline CI en Jenkins)_
+
 
 ### Análisis
 - Las pruebas unitarias existentes se ejecutaron correctamente; se planea añadir al menos cinco pruebas unitarias adicionales por servicio para cubrir componentes críticos (repositorios, servicios y controladores REST) conforme al requerimiento.
@@ -35,7 +50,7 @@ _(Insertar imagen de la etapa Run Integration Tests)_
 
 ### Análisis
 - Actualmente las suites de integración confirman la correcta resolución de dependencias entre servicios a través de Eureka/Config Server.
-- Se planifica instrumentar pruebas más profunda
+- Se planifica instrumentar pruebas más profundas que validen consistencia y resiliencia entre servicios dependientes.
 
 ## Pipeline Master (Producción Controlada)
 - **Configuración**: etapas `Deploy to Kubernetes`, `Wait for Services`, `Resolve API Gateway Endpoint` y `Run E2E Tests`.
@@ -45,25 +60,25 @@ _(Insertar imagen del dashboard del pipeline master con todas las etapas verdes)
 
 ### Análisis
 - Las pruebas E2E (Cypress) confirman flujos de usuario completos a través del API Gateway; actualmente cubren login de usuario, creación de pedidos, pagos y seguimiento de envíos.
-- Se añadirá instrumentación para recopilar métricas de rendimiento (latencia, throughput) una vez integradas las pruebas de carga con Locust.
+- Las ejecuciones de Locust generan reportes HTML y CSV con latencias promedio, percentiles y tasa de errores para evaluar salud del entorno.
 - Monitoreo adicional planificado: integraciones con Prometheus/Grafana para validar KPIs en ejecuciones subsecuentes.
 
 ## Pruebas implementadas
 - **Unitarias**: suites existentes ejecutadas mediante Maven; pendiente documentar las cinco nuevas pruebas por microservicio (en desarrollo).
 - **Integración**: ejecutadas a través del perfil `integration-tests`; en progreso la adición de cinco casos que cubran escenarios multi-servicio.
 - **E2E**: colección Cypress (`e2e-tests/cypress/e2e/*.cy.js`) integrada al pipeline; los scripts validan favoritos, pedidos, pagos, productos, servicio de descubrimiento, envíos y usuarios.
-- **Rendimiento (Locust)**: _pendiente_ de implementación; se definirá un escenario de carga que simule picos de compras y navegaciones concurrentes.
+- **Rendimiento (Locust)**: escenario `tests/performance/locustfile.py` que simula navegación de catálogo y creación de órdenes contra el API Gateway.
 
 ## Métricas y análisis de resultados
 - Jenkins Centraliza los logs de cada etapa y registra el estado final de los deployments mediante `kubectl get deployments` y `kubectl get pods`.
-- Las métricas de tiempo de respuesta y throughput se incorporarán una vez que las pruebas de Locust estén listas.
+- Las métricas de tiempo de respuesta y throughput se consultan en los reportes de Locust almacenados en `tests/performance/reports`.
 - Se documentarán tasas de errores a partir de los resultados de Cypress y los reportes de Maven Surefire/FailSafe.
 
 _(Insertar imagen de métricas de pruebas E2E)_
 
 ## Próximos pasos
 - Completar la suite de pruebas unitarias e integración adicionales requeridas.
-- Implementar y automatizar las pruebas de rendimiento con Locust, incluyendo recolección de métricas clave (latencia p95, throughput, tasa de errores).
+- Definir umbrales aceptables para las métricas de Locust (latencia p95, throughput, tasa de errores) e incorporarlos al criterio de aprobación del pipeline.
 - Automatizar la generación de Release Notes al cierre de cada ejecución del pipeline Master.
 - Incorporar publicación de imágenes Docker firmadas y versionadas en el registro configurado.
 - Documentar con capturas y adjuntar un ZIP con las pruebas implementadas conforme a los requerimientos del taller.
