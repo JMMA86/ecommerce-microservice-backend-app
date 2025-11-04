@@ -1,5 +1,8 @@
 # Taller 2: Pruebas y lanzamiento
 
+- Nombre: Juan Manuel Marín Angarita
+- Código: A00382037
+
 ## Resumen de avance
 - Se configuró un pipeline de Jenkins ejecutándose sobre un agente Kubernetes con contenedores dedicados para Maven, Docker, kubectl y Node, habilitando el build y despliegue de los microservicios seleccionados.
 - Se habilitaron etapas de construcción, pruebas unitarias, integración y E2E para los servicios `favourite-service`, `order-service`, `payment-service`, `product-service`, `service-discovery`, `shipping-service` y `user-service`.
@@ -24,10 +27,6 @@ _(Insertar imagen de la ejecución del pipeline CI en Jenkins)_
 - Las pruebas unitarias existentes se ejecutaron correctamente; se planea añadir al menos cinco pruebas unitarias adicionales por servicio para cubrir componentes críticos (repositorios, servicios y controladores REST) conforme al requerimiento.
 - Cobertura de código actual capturada via informes de Maven Surefire; se documentará la métrica exacta cuando se integren los reportes en Jenkins.
 
-### Release Notes
-- **Versión Dev 0.1.0**: paquetes Maven generados para `favourite-service`, `order-service`, `payment-service`, `product-service`, `service-discovery`, `shipping-service`, `user-service`.
-- Cambios clave: inclusión de pipeline CI unificado y ajustes en Helm Chart (`api-gateway` namespace templating).
-
 ## Pipeline QA (Stage Environment)
 - **Configuración**: reutiliza el mismo `Jenkinsfile` con etapa `Run Integration Tests`, invocando `mvn verify -Pintegration-tests` en cada microservicio para validar la comunicación entre servicios.
 - **Resultado**: se ejecutan pruebas de integración existentes; se agregará un conjunto de al menos cinco pruebas adicionales que cubran interacciones entre microservicios (e.g., pedidos → pagos → envíos) para cumplir la rúbrica.
@@ -36,11 +35,7 @@ _(Insertar imagen de la etapa Run Integration Tests)_
 
 ### Análisis
 - Actualmente las suites de integración confirman la correcta resolución de dependencias entre servicios a través de Eureka/Config Server.
-- Se planifica instrumentar pruebas más profundas que verifiquen la consistencia transaccional y la propagación de eventos entre módulos.
-
-### Release Notes
-- **Versión Stage 0.1.0**: despliegue de artefactos generados tras pruebas unitarias e integración en entorno controlado `ecommerce-dev` sin exposición pública.
-- Actualizaciones relevantes: pipeline monitoriza `kubectl rollout status` para cada deployment antes de iniciar validaciones E2E.
+- Se planifica instrumentar pruebas más profunda
 
 ## Pipeline Master (Producción Controlada)
 - **Configuración**: etapas `Deploy to Kubernetes`, `Wait for Services`, `Resolve API Gateway Endpoint` y `Run E2E Tests`.
@@ -52,11 +47,6 @@ _(Insertar imagen del dashboard del pipeline master con todas las etapas verdes)
 - Las pruebas E2E (Cypress) confirman flujos de usuario completos a través del API Gateway; actualmente cubren login de usuario, creación de pedidos, pagos y seguimiento de envíos.
 - Se añadirá instrumentación para recopilar métricas de rendimiento (latencia, throughput) una vez integradas las pruebas de carga con Locust.
 - Monitoreo adicional planificado: integraciones con Prometheus/Grafana para validar KPIs en ejecuciones subsecuentes.
-
-### Release Notes
-- **Versión Master 0.1.0**: despliegue validado en entorno Kubernetes `ecommerce-dev` con verificación E2E previa.
-- Cambios clave: automatización de la espera por despliegues y resolución dinámica del endpoint del API Gateway.
-- Próximos entregables: publicación automática de artefactos Docker etiquetados por versión y generación de Release Notes formales en formato Markdown.
 
 ## Pruebas implementadas
 - **Unitarias**: suites existentes ejecutadas mediante Maven; pendiente documentar las cinco nuevas pruebas por microservicio (en desarrollo).
