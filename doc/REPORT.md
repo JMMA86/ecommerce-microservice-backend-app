@@ -19,24 +19,28 @@
 Se instalaron los plugins necesarios para la configuración del sistema y el pipeline (principalmente Git, Pipeline, Kubernetes y Stage View).
 
 Primero se crearon las credenciales necesarias para la conexión de Jenkins con Minikube y los demás servicios:
-![alt text](image.png)
+![alt text](images/image.png)
 
 Estas credenciales se utilizaron en la creación de un Cloud de minikube (kubernetes) con la configuración necesaria de los enlaces:
-![alt text](image-1.png)
-![alt text](image-2.png)
+![alt text](images/image-1.png)
+![alt text](images/image-2.png)
 
 Después se procedió a crear el pipeline con la configuración del repositorio y las ramas involucradas (`dev` y `master`):
-![alt text](image-3.png)
+![alt text](images/image-3.png)
 
-Además de otros parámetros que sirven para configurar el inicio de cada pipeline:
-
+Además de otros parámetros que sirven para configurar el inicio de cada pipeline (configurados en el `Jenkinsfile`):
 
 
 ## Pipeline CI (Dev Environment)
 - **Configuración**: etapas `Checkout`, `Build with Maven` y `Run Unitary Tests`; se construyen sucesivamente los siete microservicios seleccionados ejecutando `mvn clean package` y `mvn test` en cada módulo.
-- **Resultado**: ejecución exitosa que produce artefactos listos para pruebas posteriores y valida que las pruebas unitarias personalizadas pasen.
+- **Resultado**: ejecución exitosa que produce artefactos listos para pruebas posteriores y valida que las pruebas unitarias personalizadas pasen. Se realizaron un total de:
 
-
+- 6 pruebas para FavouriteService
+- 7 pruebas para OrderService
+- 6 pruebas para PaymentService
+- 14 pruebas para ProductService
+- 6 pruebas para OrderItemService
+- 24 pruebas para UserService
 
 ### Análisis
 - Las pruebas unitarias existentes se ejecutaron correctamente; se planea añadir al menos cinco pruebas unitarias adicionales por servicio para cubrir componentes críticos (repositorios, servicios y controladores REST) conforme al requerimiento.
@@ -46,7 +50,7 @@ Además de otros parámetros que sirven para configurar el inicio de cada pipeli
 - **Configuración**: reutiliza el mismo `Jenkinsfile` con etapa `Run Integration Tests`, invocando `mvn verify -Pintegration-tests` en cada microservicio para validar la comunicación entre servicios.
 - **Resultado**: se ejecutan pruebas de integración existentes; se agregará un conjunto de al menos cinco pruebas adicionales que cubran interacciones entre microservicios (e.g., pedidos → pagos → envíos) para cumplir la rúbrica.
 
-_(Insertar imagen de la etapa Run Integration Tests)_
+_(Insertar images/imagen de la etapa Run Integration Tests)_
 
 ### Análisis
 - Actualmente las suites de integración confirman la correcta resolución de dependencias entre servicios a través de Eureka/Config Server.
@@ -56,7 +60,7 @@ _(Insertar imagen de la etapa Run Integration Tests)_
 - **Configuración**: etapas `Deploy to Kubernetes`, `Wait for Services`, `Resolve API Gateway Endpoint` y `Run E2E Tests`.
 - **Resultado**: Helm despliega los servicios en `ecommerce-dev`, valida la disponibilidad de pods y servicios, resuelve la IP externa del API Gateway y ejecuta pruebas E2E basadas en Cypress contra el entorno real.
 
-_(Insertar imagen del dashboard del pipeline master con todas las etapas verdes)_
+_(Insertar images/imagen del dashboard del pipeline master con todas las etapas verdes)_
 
 ### Análisis
 - Las pruebas E2E (Cypress) confirman flujos de usuario completos a través del API Gateway; actualmente cubren login de usuario, creación de pedidos, pagos y seguimiento de envíos.
@@ -74,7 +78,7 @@ _(Insertar imagen del dashboard del pipeline master con todas las etapas verdes)
 - Las métricas de tiempo de respuesta y throughput se consultan en los reportes de Locust almacenados en `tests/performance/reports`.
 - Se documentarán tasas de errores a partir de los resultados de Cypress y los reportes de Maven Surefire/FailSafe.
 
-_(Insertar imagen de métricas de pruebas E2E)_
+_(Insertar images/imagen de métricas de pruebas E2E)_
 
 ## Próximos pasos
 - Completar la suite de pruebas unitarias e integración adicionales requeridas.
@@ -83,4 +87,4 @@ _(Insertar imagen de métricas de pruebas E2E)_
 - Incorporar publicación de imágenes Docker firmadas y versionadas en el registro configurado.
 - Documentar con capturas y adjuntar un ZIP con las pruebas implementadas conforme a los requerimientos del taller.
 
-_(Insertar imagen del roadmap o tablero de seguimiento)_
+_(Insertar images/imagen del roadmap o tablero de seguimiento)_

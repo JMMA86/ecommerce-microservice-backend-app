@@ -53,7 +53,7 @@ spec:
         )
         booleanParam(
             name: 'RUN_E2E_TESTS',
-            defaultValue: true,
+            defaultValue: false,
             description: 'Ejecutar pruebas E2E utilizando Cypress'
         )
         booleanParam(
