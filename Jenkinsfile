@@ -105,7 +105,7 @@ spec:
                 container('maven') {
                     script {
                         def allServices = ['favourite-service', 'order-service', 'payment-service', 'product-service', 'service-discovery', 'shipping-service', 'user-service']
-                        def services = params.SELECT_SERVICE == 'ALL' ? allServices : [params.SELECT_SERVICE]
+                        def services = params.SELECT_SERVICE == 'all-services' ? allServices : [params.SELECT_SERVICE]
                         services.each { service ->
                             dir(service) {
                                 sh 'mvn clean package -DskipTests'
@@ -121,7 +121,7 @@ spec:
                 container('maven') {
                     script {
                         def allServices = ['favourite-service', 'order-service', 'payment-service', 'product-service', 'service-discovery', 'shipping-service', 'user-service']
-                        def services = params.SELECT_SERVICE == 'ALL' ? allServices : [params.SELECT_SERVICE]
+                        def services = params.SELECT_SERVICE == 'all-services' ? allServices : [params.SELECT_SERVICE]
                         services.each { service ->
                             dir(service) {
                                 sh 'mvn test'
@@ -137,7 +137,7 @@ spec:
                 container('maven') {
                     script {
                         def allServices = ['favourite-service', 'order-service', 'payment-service', 'product-service', 'service-discovery', 'shipping-service', 'user-service']
-                        def services = params.SELECT_SERVICE == 'ALL' ? allServices : [params.SELECT_SERVICE]
+                        def services = params.SELECT_SERVICE == 'all-services' ? allServices : [params.SELECT_SERVICE]
                         services.each { service ->
                             dir(service) {
                                 sh 'mvn verify -Pintegration-tests'
@@ -172,7 +172,7 @@ spec:
                 container('kubectl') {
                     sh '''
                         echo "Waiting for deployments to be ready..."
-                        kubectl wait --for=condition=available --timeout=300s deployment --all -n ecommerce-dev || true
+                        kubectl wait --for=condition=available --timeout=150s deployment --all -n ecommerce-dev || true
                         
                         echo "Listing all services in ecommerce-dev namespace:"
                         kubectl get svc -n ecommerce-dev
@@ -194,35 +194,42 @@ spec:
             steps {
                 container('node') {
                     script {
-                        sh 'apt-get update && apt-get install -y libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3-dev libxss1 libasound2-dev libxtst6 xauth xvfb curl'
-                        def baseUrl = env.API_GATEWAY_BASE_URL
-                        dir('e2e-tests') {
-                            sh 'npm install'
-                            sh """
-                                echo "Testing connectivity to API Gateway (${baseUrl})..."
-                                max_attempts=30
-                                attempt=1
+                        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                            sh '''
+                                apt-get update && apt-get install -y libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev \
+                                    libgconf-2-4 libnss3-dev libxss1 libasound2-dev libxtst6 xauth xvfb curl kubectl
+                            '''
 
-                                while [ \$attempt -le \$max_attempts ]; do
-                                    echo "Attempt \$attempt of \$max_attempts..."
-                                    if curl -f ${baseUrl}/actuator/health; then
-                                        echo "API Gateway is ready!"
-                                        break
-                                    fi
+                            dir('e2e-tests') {
+                                sh """
+                                    echo "Setting up port-forward to API Gateway in namespace ${K8S_NAMESPACE}..."
+                                    
+                                    # Inicia el port-forward en background
+                                    kubectl port-forward svc/api-gateway 9090:8080 -n ${K8S_NAMESPACE} &
+                                    PORT_FORWARD_PID=\$!
 
-                                    if [ \$attempt -eq \$max_attempts ]; then
-                                        echo "API Gateway did not become ready in time"
-                                        exit 1
-                                    fi
+                                    # Espera hasta que el servicio responda
+                                    echo "Waiting for API Gateway to be ready via port-forward..."
+                                    for i in {1..30}; do
+                                        if curl -sf http://localhost:9090/actuator/health > /dev/null; then
+                                            echo "API Gateway is ready!"
+                                            break
+                                        fi
+                                        echo "Attempt \$i/30: Waiting..."
+                                        sleep 5
+                                    done
 
-                                    echo "Waiting 10 seconds before retry..."
-                                    sleep 10
-                                    attempt=\$((attempt + 1))
-                                done
+                                    # Instalar dependencias
+                                    npm ci --prefer-offline --no-audit
 
-                                export CYPRESS_BASE_URL=${baseUrl}
-                                xvfb-run -a npx cypress run --config baseUrl=${baseUrl}
-                            """
+                                    # Ejecutar Cypress apuntando al puerto local
+                                    export CYPRESS_BASE_URL=http://localhost:9090
+                                    xvfb-run -a npx cypress run --config baseUrl=http://localhost:9090
+
+                                    # Finalizar el port-forward
+                                    kill \$PORT_FORWARD_PID || true
+                                """
+                            }
                         }
                     }
                 }
