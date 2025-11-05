@@ -29,6 +29,12 @@ spec:
             configMapKeyRef:
               name: microservices-config
               key: SPRING_PROFILES_ACTIVE
+        - name: SPRING_CLOUD_CONFIG_ALLOW_OVERRIDE
+          value: "true"
+        - name: SPRING_CLOUD_CONFIG_OVERRIDE_NONE
+          value: "true"
+        - name: SPRING_CLOUD_CONFIG_OVERRIDE_SYSTEM_PROPERTIES
+          value: "true"
         readinessProbe:
           httpGet:
             path: /actuator/health

@@ -29,17 +29,26 @@ spec:
                 configMapKeyRef:
                   name: microservices-config
                   key: SPRING_PROFILES_ACTIVE
+            - name: EUREKA_CLIENT_REGION
+              value: "default"
+            - name: EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT
+              value: "myzone"
+            - name: EUREKA_CLIENT_SERVICEURL_MYZONE
+              value: "http://service-discovery:8761/eureka"
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              valueFrom:
-                configMapKeyRef:
-                  name: microservices-config
-                  key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://service-discovery:8761/eureka/"
             - name: EUREKA_INSTANCE_HOSTNAME
               value: "api-gateway"
             - name: EUREKA_INSTANCE_NON_SECURE_PORT
               value: "8080"
             - name: SPRING_CONFIG_IMPORT
               value: "optional:configserver:http://cloud-config:9296/"
+            - name: SPRING_CLOUD_CONFIG_ALLOW_OVERRIDE
+              value: "true"
+            - name: SPRING_CLOUD_CONFIG_OVERRIDE_NONE
+              value: "true"
+            - name: SPRING_CLOUD_CONFIG_OVERRIDE_SYSTEM_PROPERTIES
+              value: "true"
           readinessProbe:
             httpGet:
               path: /actuator/health
