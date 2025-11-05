@@ -18,8 +18,8 @@ spec:
     spec:
       containers:
       - name: cloud-config
-        image: selimhorri/cloud-config-ecommerce-boot:0.1.0
-        imagePullPolicy: IfNotPresent
+        image: cloud-config:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 9296
           name: http

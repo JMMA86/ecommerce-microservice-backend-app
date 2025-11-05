@@ -1,12 +1,10 @@
 
-FROM openjdk:17
+FROM eclipse-temurin:11-jre
 ARG PROJECT_VERSION=0.1.0
 RUN mkdir -p /home/app
 WORKDIR /home/app
-ENV SPRING_PROFILES_ACTIVE dev
-COPY . .
-ADD target/product-service-v${PROJECT_VERSION}.jar product-service.jar
+COPY target/*.jar product-service.jar
 EXPOSE 8500
-ENTRYPOINT ["java", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE}", "-jar", "product-service.jar"]
+ENTRYPOINT ["java", "-jar", "product-service.jar"]
 
 

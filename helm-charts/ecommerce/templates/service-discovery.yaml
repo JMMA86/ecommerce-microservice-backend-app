@@ -18,8 +18,8 @@ spec:
     spec:
       containers:
       - name: service-discovery
-        image: selimhorri/service-discovery-ecommerce-boot:0.1.0
-        imagePullPolicy: IfNotPresent
+        image: service-discovery:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8761
           name: http

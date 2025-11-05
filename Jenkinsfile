@@ -14,13 +14,19 @@ spec:
     command:
     - cat
     tty: true
+    volumeMounts:
+    - name: maven-cache
+      mountPath: /root/.m2
   - name: docker
-    image: docker:dind
+    image: docker:24-dind
     securityContext:
       privileged: true
-    command:
-    - dockerd
-    tty: true
+    env:
+    - name: DOCKER_TLS_CERTDIR
+      value: ""
+    volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run
   - name: kubectl
     image: dtzar/helm-kubectl:3.12
     command:
@@ -36,6 +42,11 @@ spec:
     command:
     - cat
     tty: true
+  volumes:
+  - name: maven-cache
+    emptyDir: {}
+  - name: docker-sock
+    emptyDir: {}
 '''
         }
     }
@@ -80,6 +91,7 @@ spec:
 
     environment {
         DOCKER_REGISTRY = 'your-registry.com'
+        SERVICES_LIST = 'service-discovery,cloud-config,api-gateway,user-service,product-service,order-service,payment-service,shipping-service,favourite-service'
     }
 
     stages {
@@ -104,11 +116,48 @@ spec:
             steps {
                 container('maven') {
                     script {
-                        def allServices = ['favourite-service', 'order-service', 'payment-service', 'product-service', 'service-discovery', 'shipping-service', 'user-service']
-                        def services = params.SELECT_SERVICE == 'all-services' ? allServices : [params.SELECT_SERVICE]
+                        echo "Building all services with Maven..."
+                        def services = env.SERVICES_LIST.split(',')
                         services.each { service ->
+                            echo "Building ${service}..."
                             dir(service) {
                                 sh 'mvn clean package -DskipTests'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                container('docker') {
+                    script {
+                        echo "Building Docker images for all services..."
+                        def services = env.SERVICES_LIST.split(',')
+                        
+                        // Wait for Docker daemon to be ready
+                        sh '''
+                            timeout=60
+                            until docker info >/dev/null 2>&1; do
+                                echo "Waiting for Docker daemon..."
+                                sleep 2
+                                timeout=$((timeout-2))
+                                if [ $timeout -le 0 ]; then
+                                    echo "Docker daemon did not start in time"
+                                    exit 1
+                                fi
+                            done
+                            echo "Docker daemon is ready"
+                        '''
+                        
+                        services.each { service ->
+                            echo "Building Docker image for ${service}..."
+                            dir(service) {
+                                sh """
+                                    docker build -t ${service}:latest .
+                                    echo "Successfully built ${service}:latest"
+                                """
                             }
                         }
                     }
@@ -154,12 +203,22 @@ spec:
             }
             steps {
                 container('kubectl') {
-                    sh """
-                        kubectl version --client
-                        helm version
-                        kubectl create namespace ${env.K8S_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-                        helm upgrade --install ecommerce ./helm-charts/ecommerce --namespace ${env.K8S_NAMESPACE}
-                    """
+                    script {
+                        sh """
+                            echo "Deploying to Kubernetes..."
+                            kubectl version --client
+                            helm version
+                            
+                            echo "Creating namespace ${env.K8S_NAMESPACE}..."
+                            kubectl create namespace ${env.K8S_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            echo "Deploying with Helm..."
+                            helm upgrade --install ecommerce ./helm-charts/ecommerce --namespace ${env.K8S_NAMESPACE}
+                            
+                            echo "Waiting for service-discovery to be ready..."
+                            kubectl rollout status deployment/service-discovery -n ${env.K8S_NAMESPACE} --timeout=600s || true
+                        """
+                    }
                 }
             }
         }
@@ -170,19 +229,19 @@ spec:
             }
             steps {
                 container('kubectl') {
-                    sh '''
-                        echo "Waiting for deployments to be ready..."
-                        kubectl wait --for=condition=available --timeout=150s deployment --all -n ecommerce-dev || true
+                    sh """
+                        echo "Waiting for all deployments to be ready..."
+                        kubectl wait --for=condition=available --timeout=300s deployment --all -n ${env.K8S_NAMESPACE} || true
                         
-                        echo "Listing all services in ecommerce-dev namespace:"
-                        kubectl get svc -n ecommerce-dev
+                        echo "Listing all services in ${env.K8S_NAMESPACE} namespace:"
+                        kubectl get svc -n ${env.K8S_NAMESPACE}
                         
-                        echo "Listing all pods in ecommerce-dev namespace:"
-                        kubectl get pods -n ecommerce-dev
+                        echo "Listing all pods in ${env.K8S_NAMESPACE} namespace:"
+                        kubectl get pods -n ${env.K8S_NAMESPACE}
                         
                         echo "Waiting additional 30 seconds for services to stabilize..."
                         sleep 30
-                    '''
+                    """
                 }
             }
         }
@@ -202,10 +261,10 @@ spec:
 
                             dir('e2e-tests') {
                                 sh """
-                                    echo "Setting up port-forward to API Gateway in namespace ${K8S_NAMESPACE}..."
+                                    echo "Setting up port-forward to API Gateway in namespace ${env.K8S_NAMESPACE}..."
                                     
-                                    # Inicia el port-forward en background
-                                    kubectl port-forward svc/api-gateway 9090:8080 -n ${K8S_NAMESPACE} &
+                                    # Inicia el port-forward en background (puerto correcto 8080)
+                                    kubectl port-forward svc/api-gateway 9090:8080 -n ${env.K8S_NAMESPACE} &
                                     PORT_FORWARD_PID=\$!
 
                                     # Espera hasta que el servicio responda
